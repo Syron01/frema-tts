@@ -11,7 +11,7 @@ def main():
     p = argparse.ArgumentParser(prog="frema", description="Frema TTS - Türkçe duygu kontrollü ses")
     p.add_argument("text", nargs="*", help="Okunacak metin (etiketli olabilir)")
     p.add_argument("-o", "--out", default="cikti.wav")
-    p.add_argument("-v", "--voice", default="erkek", choices=list(VOICES))
+    p.add_argument("-v", "--voice", default="varsayilan", choices=list(VOICES))
     p.add_argument("-s", "--speed", type=float, default=1.0)
     p.add_argument("--list", action="store_true", help="Sesleri listele")
     p.add_argument("--list-emotions", action="store_true")

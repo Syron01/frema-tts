@@ -33,29 +33,28 @@ def _ema_tts():
     return _EMATTS
 
 
-def _to_stereo(y: np.ndarray) -> np.ndarray:
-    """Mono'yu geniş stereoya taşır: sağ/sol arası ~10 ms Haas gecikmesi,
-    yumuşak L/R kazanç farkı ve M/S genişletme."""
+def _to_stereo(y: np.ndarray, sr: int = 48000) -> np.ndarray:
+    """Mono'yu doğal stereoya taşır: doğrudan yol iki kanalda birebir,
+    genişlik her kanalda farklı kısa yansıma kuyruklarından gelir (faz çakışması yok)."""
     if y.ndim == 2:
         return y
-    sr = 48000
-    delay = int(sr * 0.011)
-    right = np.zeros_like(y)
-    right[delay:] = y[:-delay] * 0.985
-    left = y
-    lgain, rgain = 1.0, 0.97
-    stereo = np.stack([left * lgain, right * rgain], axis=-1)
-    # M/S genişlik
-    mid = (stereo[:, 0] + stereo[:, 1]) * 0.5
-    side = (stereo[:, 0] - stereo[:, 1]) * 0.5
-    side = side * 1.15
-    stereo[:, 0] = mid + side
-    stereo[:, 1] = mid - side
+    def tail(delays_gains):
+        out = np.zeros_like(y)
+        for d_ms, g in delays_gains:
+            d = int(sr * d_ms / 1000)
+            out[d:] += y[:d*0 or None][:-d] * g if d > 0 else y * g
+        return out
+    left = y + tail([(23, 0.10), (41, 0.05), (67, 0.03)])
+    right = y + tail([(29, 0.10), (53, 0.05), (71, 0.03)])
+    stereo = np.stack([left, right], axis=-1)
+    peak = np.max(np.abs(stereo)) + 1e-8
+    if peak > 0.98:
+        stereo = stereo / peak * 0.98
     return stereo
 
 
 class Frema:
-    def __init__(self, voice: str = "erkek", speed: float = 1.0, engine: str = "ematts"):
+    def __init__(self, voice: str = "varsayilan", speed: float = 1.0, engine: str = "ematts"):
         self.voice = get_voice(voice)
         self.speed = speed
         self.engine = engine
@@ -89,7 +88,7 @@ class Frema:
             pieces.append(gap)
         audio = np.concatenate(pieces) if pieces else np.zeros(0, dtype=np.float32)
         if path:
-            audio = _to_stereo(audio)
+            audio = _to_stereo(audio, sr)
             sf.write(path, audio, sr, subtype="PCM_24")
         return audio, sr
 

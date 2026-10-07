@@ -69,7 +69,13 @@ def pitch_shift(y: np.ndarray, sr: int, semitones: float) -> np.ndarray:
             _praat(tier, "Multiply frequencies", 2 ** (semitones / 12.0), snd.xmin, snd.xmax)
             _praat([man, tier], "Replace pitch tier")
             out = _praat(man, "Get resynthesis (overlap-add)")
-            return np.asarray(out.values[0], dtype=np.float32)
+            result = np.asarray(out.values[0], dtype=np.float32)
+            if len(result) > len(y):
+                result = result[:len(y)]
+            elif len(result) < len(y):
+                pad = np.zeros(len(y) - len(result), dtype=np.float32)
+                result = np.concatenate([result, pad])
+            return result
         except Exception:
             pass
     return librosa.effects.pitch_shift(y=y, sr=sr, n_steps=semitones).astype(np.float32)
@@ -131,13 +137,8 @@ def humanize(y: np.ndarray, sr: int, amount: float = 1.0) -> np.ndarray:
     if amount <= 0:
         return y
     rng = np.random.default_rng(42)
-    y = _vibrato(y, sr, 4.0 * amount, 5.0)
-    # çok hafif doğal oda yansıması (20 ms, -26 dB)
-    delay = int(sr * 0.02)
-    y2 = np.zeros_like(y)
-    y2[delay:] = y[:-delay] * 0.05
-    y = y + y2
-    # dither
+    y = _vibrato(y, sr, 2.0 * amount, 5.0)
+    # kayıp ekleme
     y = y + rng.standard_normal(len(y)).astype(np.float32) * (1e-4 * amount)
     peak = np.max(np.abs(y)) + 1e-8
     if peak > 1.0:
