@@ -47,20 +47,20 @@ class Prosody:
 
 
 EMOTIONS: dict[str, Prosody] = {
-    "kizgin": Prosody(pitch_semitones=2.5, rate=1.12, gain_db=4, brightness=2.0, tremolo_db=2.5, tremolo_hz=6, pause_scale=0.7),
-    "mutlu": Prosody(pitch_semitones=2.0, rate=1.1, gain_db=2, brightness=1.5, vibrato_cents=15, pause_scale=0.9),
-    "uzgun": Prosody(pitch_semitones=-2.5, rate=0.88, gain_db=-2, brightness=-2.5, vibrato_cents=25, vibrato_hz=4.5, pause_scale=1.4),
-    "fisilti": Prosody(pitch_semitones=1.0, rate=0.92, gain_db=-6, brightness=-4, breathiness=0.85, pause_scale=1.2),
-    "bagir": Prosody(pitch_semitones=4.0, rate=1.15, gain_db=8, brightness=4, tremolo_db=3, tremolo_hz=8, pause_scale=0.6),
-    "sakin": Prosody(pitch_semitones=-1.0, rate=0.95, gain_db=0, brightness=-1, vibrato_cents=8, pause_scale=1.3),
-    "heyecanlı": Prosody(pitch_semitones=3.0, rate=1.22, gain_db=3, brightness=2.5, vibrato_cents=20, tremolo_db=2, tremolo_hz=7, pause_scale=0.6),
-    "yumuşak": Prosody(pitch_semitones=-1.5, rate=0.92, gain_db=-1, brightness=-3, vibrato_cents=10, breathiness=0.25, pause_scale=1.2),
-    "güçlü": Prosody(pitch_semitones=-1.0, rate=1.0, gain_db=4, brightness=1, pause_scale=1.1),
-    "anlatıcı": Prosody(pitch_semitones=-0.5, rate=0.97, gain_db=1, brightness=0.5, vibrato_cents=6, pause_scale=1.25),
+    "kizgin": Prosody(pitch_semitones=1.5, rate=1.08, gain_db=3, brightness=1.5, tremolo_db=1.5, tremolo_hz=6, pause_scale=0.8),
+    "mutlu": Prosody(pitch_semitones=1.0, rate=1.05, gain_db=1.5, brightness=1.0, vibrato_cents=8, pause_scale=0.95),
+    "uzgun": Prosody(pitch_semitones=-1.0, rate=0.93, gain_db=-1.5, brightness=-1.5, vibrato_cents=15, vibrato_hz=4.5, pause_scale=1.3),
+    "fisilti": Prosody(pitch_semitones=0.5, rate=0.95, gain_db=-5, brightness=-3, breathiness=0.6, pause_scale=1.1),
+    "bagir": Prosody(pitch_semitones=2.5, rate=1.1, gain_db=6, brightness=3, tremolo_db=2, tremolo_hz=8, pause_scale=0.7),
+    "sakin": Prosody(pitch_semitones=-0.5, rate=0.97, gain_db=0, brightness=-0.5, vibrato_cents=4, pause_scale=1.2),
+    "heyecanlı": Prosody(pitch_semitones=1.5, rate=1.12, gain_db=2.5, brightness=1.5, vibrato_cents=8, tremolo_db=1, tremolo_hz=7, pause_scale=0.8),
+    "yumuşak": Prosody(pitch_semitones=-0.5, rate=0.95, gain_db=-0.5, brightness=-1.5, vibrato_cents=5, breathiness=0.2, pause_scale=1.2),
+    "güçlü": Prosody(pitch_semitones=-0.5, rate=1.0, gain_db=3, brightness=0.5, pause_scale=1.1),
+    "anlatıcı": Prosody(pitch_semitones=0.0, rate=1.0, gain_db=1, brightness=0.5, vibrato_cents=3, pause_scale=1.2),
     "haber": Prosody(pitch_semitones=0.5, rate=1.08, gain_db=2, brightness=2, pause_scale=0.9),
-    "romantik": Prosody(pitch_semitones=-2.0, rate=0.85, gain_db=-1, brightness=-2, vibrato_cents=30, vibrato_hz=4, breathiness=0.3, pause_scale=1.4),
-    "korkmuş": Prosody(pitch_semitones=3.5, rate=1.25, gain_db=0, brightness=1, vibrato_cents=35, vibrato_hz=7, pause_scale=0.7),
-    "ciddi": Prosody(pitch_semitones=-1.5, rate=0.93, gain_db=1, brightness=-0.5, pause_scale=1.2),
+    "romantik": Prosody(pitch_semitones=-0.5, rate=0.9, gain_db=-0.5, brightness=-1, vibrato_cents=15, vibrato_hz=4, breathiness=0.25, pause_scale=1.3),
+    "korkmuş": Prosody(pitch_semitones=2.0, rate=1.15, gain_db=0, brightness=0.5, vibrato_cents=20, vibrato_hz=7, pause_scale=0.8),
+    "ciddi": Prosody(pitch_semitones=0.0, rate=1.0, gain_db=1, brightness=0.5, pause_scale=1.2),
 }
 
 NEUTRAL = Prosody()

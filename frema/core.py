@@ -86,6 +86,12 @@ class Frema:
                 sr = speech.sample_rate
             p = prosody_for(tag)
             y = apply_prosody(y, sr, p, voice=v)
+            # 20 ms fade ile sınır tıklamalarını/kesilmelerini önle
+            fade = min(int(sr * 0.02), len(y) // 4)
+            if fade > 1:
+                ramp = np.linspace(0, 1, fade, dtype=np.float32)
+                y[:fade] *= ramp
+                y[-fade:] *= ramp[::-1]
             pieces.append(y)
             gap = np.zeros(int(sr * 0.08), dtype=np.float32)
             pieces.append(gap)
