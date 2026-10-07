@@ -37,7 +37,7 @@
 ## 🚀 Kurulum
 
 ```bash
-pip install ema-lightning librosa soundfile scipy
+pip install ema-lightning librosa soundfile scipy praat-parselmouth
 ```
 
 Depoyu klonlayıp doğrudan kullanabilirsin:
@@ -124,9 +124,9 @@ python benchmark.py
 
 Frema, EMA Lightning'in 48 kHz mono çıktısını alıp üç katmandan geçirir:
 
-1. **Prozodi hattı** — her duygu etiketi için pitch kaydırma (semiton), tempo, kazanç, spektral eğim (parlaklık), vibrato ve tremolo.
-2. **Ses profilleri** — temel sesi pitch/EQ ile erkek, derin, kadın, robot gibi farklı karakterlere dönüştürür.
-3. **İnsanileştirme** — mikro vibrato, yumuşak yüksek frekans tavanı ve düşük genlikli dithering ile "AI likini" azaltır.
+1. **Prozodi hattı** — her duygu etiketi için per kaydırma (**PSOLA**, robot değil), kaset usulü tempo değişimi, kazanç, spektral eğim (parlaklık), vibrato ve tremolo.
+2. **Ses profilleri** — formant (ses yolu) dönüşümü ile temel sesi erkek, derin, kadın, robot gibi karakterlere dönüştürür; ardından per ve EQ ince ayarı.
+3. **İnsanileştirme** — mikro vibrato, tek yankı simulasyonu (room), dithering ve anlık drift ile "AI likini" maskeler.
 
 ## 📁 Proje Yapısı
 

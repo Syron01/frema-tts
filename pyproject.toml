@@ -9,6 +9,7 @@ dependencies = [
     "soundfile",
     "scipy",
     "numpy",
+    "praat-parselmouth",
 ]
 
 [project.scripts]
