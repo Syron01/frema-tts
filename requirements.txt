@@ -1,0 +1,7 @@
+ema-lightning
+librosa
+soundfile
+scipy
+praat-parselmouth
+voxcpm
+pyloudnorm
