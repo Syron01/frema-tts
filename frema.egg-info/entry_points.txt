@@ -1,0 +1,2 @@
+[console_scripts]
+frema = frema.cli:main

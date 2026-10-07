@@ -1,0 +1,6 @@
+ema-lightning
+librosa
+soundfile
+scipy
+numpy
+praat-parselmouth

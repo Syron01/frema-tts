@@ -12,5 +12,12 @@ dependencies = [
     "praat-parselmouth",
 ]
 
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["frema"]
+
 [project.scripts]
 frema = "frema.cli:main"
