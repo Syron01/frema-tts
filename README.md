@@ -1,20 +1,54 @@
 # Frema ⚡
 
-**Frema**, [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) üzerine kurulu, Türkçe odaklı, **duygu etiketli**, **ses profilli** ve **insanileştirilmiş** açık kaynaklı bir metinden sese (TTS) katmanıdır.
+**Frema**, [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) üzerine kurulu, Türkçe odaklı, **duygu etiketli**, **ses profilli** ve **insanileştirilmiş** açık kaynaklı bir metinden sese (TTS) katmanıdır. Tamamen offline çalışır, API anahtarı istemez.
 
-- 🎭 ElevenLabs tarzı duygu etiketleri: `[kızgın]`, `[fısıltı]`, `[heyecanlı]` …
-- 🎙️ 8 farklı ses profili: `erkek`, `derin_erkek`, `anlatıcı_erkek`, `kadın` …
-- 🧹 "AI likini" kıran insanileştirme: mikro vibrato, yumuşak tavan, dithering
-- ⚡ Akış (stream) desteği — ilk ses ~100 ms
-- 💻 CPU'da çalışır, tamamen offline, ~34 MB model
+[![Lisans](https://img.shields.io/badge/lisans-Apache--2.0-blue)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](pyproject.toml)
+[![Model](https://img.shields.io/badge/model-~34%20MB-green)](https://huggingface.co/canberkkkkkk/ema-lightning)
 
-## Kurulum
+---
+
+## 🎧 Ses Örnekleri
+
+> Dosyalara tıklayınca GitHub oynatıcısında dinleyebilirsin.
+
+| Örnek | Dosya | Duygular / Ses |
+|---|---|---|
+| Diyalog | [replik_diyalog.wav](examples/replik_diyalog.wav) | `[kızgın]` → `[sakin]`, erkek |
+| Dublaj | [dublaj_kadin.wav](examples/dublaj_kadin.wav) | `[romantik]` → `[üzgün]`, kadın |
+| Haber bülteni | [haber_spikeri.wav](examples/haber_spikeri.wav) | `[haber]`, erkek |
+| Fısıltı & bağırış | [fisilti_bagir.wav](examples/fisilti_bagir.wav) | `[fısıltı]` → `[bağır]` |
+| Anlatıcı | [replik_anlatici.wav](examples/replik_anlatici.wav) | `[ciddi]` → `[mutlu]` |
+| Derin erkek | [derin_erkek_ciddi.wav](examples/derin_erkek_ciddi.wav) | `[ciddi]` + `[güçlü]` |
+| Kadın romantik | [kadin_romantik.wav](examples/kadin_romantik.wav) | `[romantik]` |
+| Etiket karışımı | [test_duygu.wav](examples/test_duygu.wav) | `[mutlu]` `[ciddi]` `[kızgın]` |
+
+---
+
+## ✨ Neden Frema?
+
+- 🎭 **Duygu etiketleri** — ElevenLabs tarzı `[kızgın]`, `[fısıltı]`, `[heyecanlı]` … metnin içinde etiket, o andan itibaren ses tonu değişir.
+- 🎙️ **8 ses profili** — `erkek`, `derin_erkek`, `anlatici_erkek`, `kadin`, `yumusak_kadin`, `genc_erkek`, `robot`, `kaptan`.
+- 🧹 **AI likini kıran insanileştirme** — mikro vibrato, yumuşak yüksek frekans tavanı, analog dithering.
+- ⚡ **Akış (streaming)** — ilk ses parçası ~100 ms içinde.
+- 🏃 **Eksiklik değil, ince ayar** — tek cümlede birden fazla duygu geçişi, parça aralarına doğal nefes payı.
+- 💻 **Tamamen yerel** — CPU'da da çalışır, hiçbir veri dışarı çıkmaz.
+
+## 🚀 Kurulum
 
 ```bash
 pip install ema-lightning librosa soundfile scipy
 ```
 
-## Hızlı Başlangıç
+Depoyu klonlayıp doğrudan kullanabilirsin:
+
+```bash
+git clone https://github.com/Syron01/frema-tts.git
+cd frema-tts
+pip install -e .
+```
+
+## 🎬 Hızlı Başlangıç
 
 ```python
 from frema import Frema
@@ -26,9 +60,17 @@ f.say(
 )
 ```
 
-## Duygu Etiketleri
+Tek satırda CLI:
 
-Metin içine köşeli parantezle yazılır, o noktadan itibaren geçerlidir:
+```bash
+python -m frema.cli "[romantik] Gecenin sessizliğinde yıldızlar parlıyordu." -v kadin -o gece.wav
+python -m frema.cli --list            # sesler
+python -m frema.cli --list-emotions   # duygular
+```
+
+## 🎭 Duygu Etiketleri
+
+Metin içine köşeli parantezle yazılır; o noktadan itibaren geçerlidir, bir sonraki etiket gelene dek sürer.
 
 | Etiket | Etki |
 |---|---|
@@ -47,9 +89,9 @@ Metin içine köşeli parantezle yazılır, o noktadan itibaren geçerlidir:
 | `[korkmuş]` | tiz, titrek, hızlı |
 | `[ciddi]` | pes, ölçülü |
 
-İngilizce takma adlar da çalışır: `[angry]`, `[happy]`, `[whisper]`, `[sad]` …
+İngilizce takma adlar da çalışır: `[angry]`, `[happy]`, `[whisper]`, `[sad]`, `[calm]` …
 
-## Ses Profilleri
+## 🎙️ Ses Profilleri
 
 | Profil | Açıklama |
 |---|---|
@@ -62,49 +104,45 @@ Metin içine köşeli parantezle yazılır, o noktadan itibaren geçerlidir:
 | `robot` | lo-fi robot |
 | `kaptan` | derin ve otoriter |
 
-```python
-f = Frema(voice="derin_erkek")
-```
-
-## CLI
-
-```bash
-python -m frema.cli "[mutlu] Selam!" -v erkek -o selam.wav
-python -m frema.cli --list
-python -m frema.cli --list-emotions
-```
-
-## Akış (Düşük Gecikme)
+## 🌊 Canlı Akış (Düşük Gecikme)
 
 ```python
+f = Frema(voice="anlatici_erkek")
 for chunk in f.stream("[sakin] Merhaba, nasılsın?"):
     play(chunk)  # kendi oynatıcın
 ```
 
-## Hız Testi
+## ⏱️ Hız
 
 ```bash
 python benchmark.py
 ```
 
-## Nasıl Geliştirildi?
+Örnek ölçüm (CPU, RTX'siz dizüstü): RTF ~0.95 · ilk parça ~100 ms. GPU ile çok daha hızlı.
 
-Frema, EMA Lightning'in 48 kHz mono çıktısını alır ve üzerine:
+## 🔧 Nasıl Çalışır?
 
-1. **Prozodi hattı** — her duygu etiketi için pitch kaydırma (semiton), zaman uzatma,
-   kazanç, spektral eğim (parlaklık), vibrato ve tremolo uygular.
-2. **Ses profilleri** — temel sesi pitch/EQ ile erkek, derin, kadın, robot gibi
-   farklı karakterlere dönüştürür.
-3. **İnsanileştirme** — mikro vibrato, yumuşak yüksek frekans tavanı ve düşük
-   genlikli dithering ekleyerek "AI likini" azaltır.
+Frema, EMA Lightning'in 48 kHz mono çıktısını alıp üç katmandan geçirir:
 
-## Lisans
+1. **Prozodi hattı** — her duygu etiketi için pitch kaydırma (semiton), tempo, kazanç, spektral eğim (parlaklık), vibrato ve tremolo.
+2. **Ses profilleri** — temel sesi pitch/EQ ile erkek, derin, kadın, robot gibi farklı karakterlere dönüştürür.
+3. **İnsanileştirme** — mikro vibrato, yumuşak yüksek frekans tavanı ve düşük genlikli dithering ile "AI likini" azaltır.
 
-Apache-2.0 (EMA Lightning ve normalizer-tr ile uyumlu).
+## 📁 Proje Yapısı
 
-## Örnekler
+```
+frema/
+├── core.py        # Frema sınıfı: say() / stream()
+├── emotion.py     # duygu etiketleri ve prozodi tablosu
+├── voices.py      # ses profilleri
+├── processing.py  # pitch, tempo, EQ, vibrato, insanileştirme
+└── cli.py         # komut satırı
+examples/          # örnek .wav'ler
+benchmark.py       # hız ölçümü
+```
 
-- `examples/test_duygu.wav` — duygu etiketli örnek
-- `benchmark.py` — hız ölçümü
+## ⚖️ Lisans
 
-> EMA Lightning'in orijinal sayfası: https://huggingface.co/canberkkkkkk/ema-lightning
+Apache-2.0. EMA Lightning ve normalizer-tr ile uyumludur. Ticari kullanıma uygundur.
+
+> Orijinal model: https://huggingface.co/canberkkkkkk/ema-lightning
