@@ -42,7 +42,10 @@ def _to_stereo(y: np.ndarray, sr: int = 48000) -> np.ndarray:
         out = np.zeros_like(y)
         for d_ms, g in delays_gains:
             d = int(sr * d_ms / 1000)
-            out[d:] += y[:d*0 or None][:-d] * g if d > 0 else y * g
+            if d <= 0:
+                out += y * g
+            else:
+                out[d:] += y[:-d] * g
         return out
     left = y + tail([(23, 0.10), (41, 0.05), (67, 0.03)])
     right = y + tail([(29, 0.10), (53, 0.05), (71, 0.03)])
