@@ -1,0 +1,15 @@
+[project]
+name = "frema"
+version = "0.1.0"
+description = "Türkçe duygu kontrollü TTS - EMA Lightning tabanlı"
+requires-python = ">=3.11"
+dependencies = [
+    "ema-lightning",
+    "librosa",
+    "soundfile",
+    "scipy",
+    "numpy",
+]
+
+[project.scripts]
+frema = "frema.cli:main"
