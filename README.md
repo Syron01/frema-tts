@@ -27,11 +27,12 @@
 
 ## ✨ Neden Frema?
 
+- 🧠 **Motor: EMA-TTS 65M** — Türkçe'nin en güçlü açık modeli (3.0% WER, ElevenLabs'e yakın doğruluk). Alternatif hızlı motor: EMA Lightning.
 - 🎭 **Duygu etiketleri** — ElevenLabs tarzı `[kızgın]`, `[fısıltı]`, `[heyecanlı]` … metnin içinde etiket, o andan itibaren ses tonu değişir.
 - 🎙️ **8 ses profili** — `erkek`, `derin_erkek`, `anlatici_erkek`, `kadin`, `yumusak_kadin`, `genc_erkek`, `robot`, `kaptan`.
-- 🧹 **AI likini kıran insanileştirme** — mikro vibrato, yumuşak yüksek frekans tavanı, analog dithering.
-- ⚡ **Akış (streaming)** — ilk ses parçası ~100 ms içinde.
-- 🏃 **Eksiklik değil, ince ayar** — tek cümlede birden fazla duygu geçişi, parça aralarına doğal nefes payı.
+- 🧹 **Temiz insanileştirme** — PSOLA per kaydırma (robot değil), ince oda yansıması, dither. Gürültülü efekt yok.
+- 🎧 **48 kHz PCM-24 stereo** — doğal 10 ms Haas genişlik, M/S yayılım.
+- ⚡ **Akış (streaming)** — ilk ses parçası ~100 ms.
 - 💻 **Tamamen yerel** — CPU'da da çalışır, hiçbir veri dışarı çıkmaz.
 
 ## 🚀 Kurulum
@@ -122,11 +123,13 @@ python benchmark.py
 
 ## 🔧 Nasıl Çalışır?
 
-Frema, EMA Lightning'in 48 kHz mono çıktısını alıp üç katmandan geçirir:
+Frema, Türkçe'nin en güçlü açık TTS modeli **EMA-TTS (65M)** motorunu kullanır ve çıktısına üç katmanlı temiz bir işlemden geçirir:
 
-1. **Prozodi hattı** — her duygu etiketi için per kaydırma (**PSOLA**, robot değil), kaset usulü tempo değişimi, kazanç, spektral eğim (parlaklık), vibrato ve tremolo.
-2. **Ses profilleri** — formant (ses yolu) dönüşümü ile temel sesi erkek, derin, kadın, robot gibi karakterlere dönüştürür; ardından per ve EQ ince ayarı.
-3. **İnsanileştirme** — mikro vibrato, tek yankı simulasyonu (room), dithering ve anlık drift ile "AI likini" maskeler.
+1. **Prozodi hattı** — her duygu etiketi için per kaydırma (PSOLA), kaset usulü tempo, kazanç, spektral eğim (parlaklık), vibrato/tremolo. Faz vokoderi robot müzik üretir; biz onu hiç kullanmıyoruz.
+2. **Ses profilleri** — ince PSOLA per kaydırma + formant denetimi + EQ ile erkek, derin, kadın, robot karakterler. Ağır formant dönüşümü yok.
+3. **İnsanileştirme** — mikro vibrato, tek yankı (20 ms, -26 dB), yüksek bantta temiz nefesleme ve dithering.
+
+Çıktı: **48 kHz PCM-24 stereo** (10 ms Haas genişlik + M/S yayılım).
 
 ## 📁 Proje Yapısı
 

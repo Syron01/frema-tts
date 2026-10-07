@@ -119,9 +119,11 @@ def _tremolo(y: np.ndarray, sr: int, db: float, hz: float) -> np.ndarray:
 def add_breathiness(y: np.ndarray, sr: int, amount: float) -> np.ndarray:
     if amount <= 0:
         return y
-    noise = np.random.default_rng(0).standard_normal(len(y)).astype(np.float32) * 0.02
-    noise = dsp.sosfiltfilt(dsp.butter(2, 6000, fs=sr, btype="high", output="sos"), noise)
-    return (y * (1 - amount * 0.4) + noise * amount).astype(np.float32)
+    noise = np.random.default_rng(0).standard_normal(len(y)).astype(np.float32) * 0.008
+    # ince, temiz bir nefes: 1.5-6 kHz bant, düşük genlik
+    sos = dsp.butter(2, [1500, 6000], fs=sr, btype="bandpass", output="sos")
+    noise = dsp.sosfiltfilt(sos, noise)
+    return (y * (1 - amount * 0.3) + noise * amount).astype(np.float32)
 
 
 def humanize(y: np.ndarray, sr: int, amount: float = 1.0) -> np.ndarray:
@@ -129,11 +131,11 @@ def humanize(y: np.ndarray, sr: int, amount: float = 1.0) -> np.ndarray:
     if amount <= 0:
         return y
     rng = np.random.default_rng(42)
-    y = _vibrato(y, sr, 6.0 * amount, 5.0)
-    # hafif "oda" hissi: tek yansıma (30 ms gecikmeli, çok kısık)
-    delay = int(sr * 0.03)
+    y = _vibrato(y, sr, 4.0 * amount, 5.0)
+    # çok hafif doğal oda yansıması (20 ms, -26 dB)
+    delay = int(sr * 0.02)
     y2 = np.zeros_like(y)
-    y2[delay:] = y[:-delay] * 0.06
+    y2[delay:] = y[:-delay] * 0.05
     y = y + y2
     # dither
     y = y + rng.standard_normal(len(y)).astype(np.float32) * (1e-4 * amount)

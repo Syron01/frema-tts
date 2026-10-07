@@ -10,6 +10,7 @@ from .voices import get_voice, Voice
 from .processing import apply_prosody
 
 _EMA = None
+_EMATTS = None
 
 
 def _ema():
@@ -20,10 +21,44 @@ def _ema():
     return _EMA
 
 
+def _ema_tts():
+    global _EMATTS
+    if _EMATTS is None:
+        import sys
+        sys.path.insert(0, "ema-tts")
+        from inference import EmaTTS
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _EMATTS = EmaTTS.from_pretrained("ema-tts/ckpt", device=device)
+    return _EMATTS
+
+
+def _to_stereo(y: np.ndarray) -> np.ndarray:
+    """Mono'yu geniş stereoya taşır: sağ/sol arası ~10 ms Haas gecikmesi,
+    yumuşak L/R kazanç farkı ve M/S genişletme."""
+    if y.ndim == 2:
+        return y
+    sr = 48000
+    delay = int(sr * 0.011)
+    right = np.zeros_like(y)
+    right[delay:] = y[:-delay] * 0.985
+    left = y
+    lgain, rgain = 1.0, 0.97
+    stereo = np.stack([left * lgain, right * rgain], axis=-1)
+    # M/S genişlik
+    mid = (stereo[:, 0] + stereo[:, 1]) * 0.5
+    side = (stereo[:, 0] - stereo[:, 1]) * 0.5
+    side = side * 1.15
+    stereo[:, 0] = mid + side
+    stereo[:, 1] = mid - side
+    return stereo
+
+
 class Frema:
-    def __init__(self, voice: str = "erkek", speed: float = 1.0):
+    def __init__(self, voice: str = "erkek", speed: float = 1.0, engine: str = "ematts"):
         self.voice = get_voice(voice)
         self.speed = speed
+        self.engine = engine
 
     def set_voice(self, name: str) -> None:
         self.voice = get_voice(name)
@@ -35,20 +70,27 @@ class Frema:
         pieces: list[np.ndarray] = []
         sr = sample_rate
         for tag, chunk in segments:
-            tts = _ema()
-            speech = tts.say(chunk.strip(), seed=seed, sample_rate=sr,
-                             speed=self.speed) if seed is not None else tts.say(
-                chunk.strip(), sample_rate=sr, speed=self.speed)
-            y = np.asarray(speech.audio, dtype=np.float32)
+            if self.engine == "ematts":
+                tts = _ema_tts()
+                wav = tts.say(chunk.strip(), seed=seed)
+                sr = tts.sample_rate
+                y = np.asarray(wav, dtype=np.float32)
+            else:
+                tts = _ema()
+                speech = tts.say(chunk.strip(), seed=seed, sample_rate=sr,
+                                 speed=self.speed) if seed is not None else tts.say(
+                    chunk.strip(), sample_rate=sr, speed=self.speed)
+                y = np.asarray(speech.audio, dtype=np.float32)
+                sr = speech.sample_rate
             p = prosody_for(tag)
-            y = apply_prosody(y, speech.sample_rate, p, voice=v)
+            y = apply_prosody(y, sr, p, voice=v)
             pieces.append(y)
-            # parçalar arası küçük nefes payı
-            gap = np.zeros(int(speech.sample_rate * 0.08), dtype=np.float32)
+            gap = np.zeros(int(sr * 0.08), dtype=np.float32)
             pieces.append(gap)
         audio = np.concatenate(pieces) if pieces else np.zeros(0, dtype=np.float32)
         if path:
-            sf.write(path, audio, sr)
+            audio = _to_stereo(audio)
+            sf.write(path, audio, sr, subtype="PCM_24")
         return audio, sr
 
     def stream(self, text: str, voice: str | None = None):
