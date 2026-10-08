@@ -15,6 +15,7 @@
 
 | Örnek | Model / Profil | Açıklama | Çevrimiçi Oynatıcı (HTML5 Audio) | Doğrudan İndir |
 |---|---|---|---|---|
+| **Gerilim Kötü Adam Dublajı** | `derin_anlatici` (Trendyol 2.38B) | Aşırı derin, gerilim ve tehditkâr kötü adam monoloğu | <audio controls src="examples/kotu_adam_dublaj.mp3"></audio> | [🎧 MP3 Oyna / İndir](examples/kotu_adam_dublaj.mp3) |
 | **Podcast (Tok Erkek)** | `tok_erkek` (Trendyol 2.38B) | Derin, tok, samimi ve dinlendirici ton | <audio controls src="examples/tok_erkek_podcast.mp3"></audio> | [🎧 MP3 Oyna / İndir](examples/tok_erkek_podcast.mp3) |
 | **Haber Bülteni** | `haber_spikeri` (Trendyol 2.38B) | Net artikülasyon, akıcı ve berrak diksiyon | <audio controls src="examples/haber_bulteni.mp3"></audio> | [🎧 MP3 Oyna / İndir](examples/haber_bulteni.mp3) |
 | **Derin Anlatıcı** | `derin_anlatici` (Trendyol 2.38B) | Tok göğüs rezonansı, belgesel/film tonu | <audio controls src="examples/derin_anlatici.mp3"></audio> | [🎧 MP3 Oyna / İndir](examples/derin_anlatici.mp3) |
