@@ -1,66 +1,68 @@
-"""Duygu etiketleri ve prozodi eşlemesi.
+"""Duygu etiketleri ve prozodi dinamikleri: Doğal tonlama ve tempo.
 
-Metin içine ElevenLabs tarzı etiketler yazılır, örn:
-    "[kızgın] Bu nasıl bir teklif böyle! [sakin] Hadi tekrar konuşalım."
+Metin içine köşeli parantezle duygu etiketleri eklenir, örn:
+    "[ciddi] Sayın dinleyiciler, [sakin] bu akşam özel bir konuğumuz var."
 
-Her etiket bir prozodi seti tanımlar: pitch kayması (semiton), hız çarpanı,
-enerji kazancı (dB), spektral eğim, titreme (vibrato) miktarı.
+Yapay mikro-vibrato veya gürültü eklenmez; duygu ifadesi tempo (hız), duraklama süreleri,
+gövde rezonansı ve dinamik seviye ile tamamen doğal biçimde sağlanır.
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-# İsim -> kanonik etiket
 ALIASES = {
     "angry": "kizgin", "kızgın": "kizgin",
     "happy": "mutlu", "neşeli": "mutlu", "neşe": "mutlu",
     "sad": "uzgun", "üzgün": "uzgun", "hüzünlü": "uzgun",
-    "whisper": "fisilti", "fısıltı": "fisilti", "fisilti": "fisilti",
+    "whisper": "fisilti", "fısıltı": "fisilti",
     "shout": "bagir", "bağır": "bagir", "bağırış": "bagir",
     "calm": "sakin",
-    "excited": "heyecanlı", "heyecanlı": "heyecanlı",
-    "soft": "yumuşak", "yumuşak": "yumuşak",
-    "strong": "güçlü", "güçlü": "güçlü",
-    "narrator": "anlatıcı", "anlatıcı": "anlatıcı", "hikaye": "anlatıcı",
-    "news": "haber", "haber": "haber",
-    "romantic": "romantik", "romantik": "romantik",
-    "scared": "korkmuş", "korkmuş": "korkmuş",
-    "serious": "ciddi", "ciddi": "ciddi",
+    "excited": "heyecanlı",
+    "soft": "yumuşak",
+    "strong": "güçlü",
+    "narrator": "anlatıcı", "hikaye": "anlatıcı",
+    "news": "haber",
+    "romantic": "romantik",
+    "scared": "korkmuş",
+    "serious": "ciddi",
 }
 
 
 @dataclass
 class Prosody:
+    warmth_delta: float = 0.0     # dB gövde/tokluk değişimi
+    presence_delta: float = 0.0   # dB netlik/artikülasyon değişimi
+    speed_factor: float = 1.0     # Hız çarpanı (<1 daha ağırbaşlı, >1 daha enerjik)
+    gain_db: float = 0.0          # Ses düzeyi (dB)
+    pause_scale: float = 1.0      # Virgül/nokta duraklama uzunluğu çarpanı
+    # Geriye dönük uyumluluk alanları
     pitch_semitones: float = 0.0
     rate: float = 1.0
-    gain_db: float = 0.0
-    brightness: float = 0.0   # spektral eğim dB/oct (+ parlak, - boğuk)
+    brightness: float = 0.0
     vibrato_cents: float = 0.0
-    vibrato_hz: float = 5.5
+    vibrato_hz: float = 5.0
     tremolo_db: float = 0.0
     tremolo_hz: float = 4.0
-    # duraksama uzunluğu çarpanı (virgül/nokta)
-    pause_scale: float = 1.0
-    breathiness: float = 0.0   # fısıltı miktarı 0..1
+    breathiness: float = 0.0
 
 
 EMOTIONS: dict[str, Prosody] = {
-    "kizgin": Prosody(pitch_semitones=1.5, rate=1.08, gain_db=3, brightness=1.5, tremolo_db=1.5, tremolo_hz=6, pause_scale=0.8),
-    "mutlu": Prosody(pitch_semitones=1.0, rate=1.05, gain_db=1.5, brightness=1.0, vibrato_cents=8, pause_scale=0.95),
-    "uzgun": Prosody(pitch_semitones=-1.0, rate=0.93, gain_db=-1.5, brightness=-1.5, vibrato_cents=15, vibrato_hz=4.5, pause_scale=1.3),
-    "fisilti": Prosody(pitch_semitones=0.5, rate=0.95, gain_db=-5, brightness=-3, breathiness=0.6, pause_scale=1.1),
-    "bagir": Prosody(pitch_semitones=2.5, rate=1.1, gain_db=6, brightness=3, tremolo_db=2, tremolo_hz=8, pause_scale=0.7),
-    "sakin": Prosody(pitch_semitones=-0.5, rate=0.97, gain_db=0, brightness=-0.5, vibrato_cents=4, pause_scale=1.2),
-    "heyecanlı": Prosody(pitch_semitones=1.5, rate=1.12, gain_db=2.5, brightness=1.5, vibrato_cents=8, tremolo_db=1, tremolo_hz=7, pause_scale=0.8),
-    "yumuşak": Prosody(pitch_semitones=-0.5, rate=0.95, gain_db=-0.5, brightness=-1.5, vibrato_cents=5, breathiness=0.2, pause_scale=1.2),
-    "güçlü": Prosody(pitch_semitones=-0.5, rate=1.0, gain_db=3, brightness=0.5, pause_scale=1.1),
-    "anlatıcı": Prosody(pitch_semitones=0.0, rate=1.0, gain_db=1, brightness=0.5, vibrato_cents=3, pause_scale=1.2),
-    "haber": Prosody(pitch_semitones=0.5, rate=1.08, gain_db=2, brightness=2, pause_scale=0.9),
-    "romantik": Prosody(pitch_semitones=-0.5, rate=0.9, gain_db=-0.5, brightness=-1, vibrato_cents=15, vibrato_hz=4, breathiness=0.25, pause_scale=1.3),
-    "korkmuş": Prosody(pitch_semitones=2.0, rate=1.15, gain_db=0, brightness=0.5, vibrato_cents=20, vibrato_hz=7, pause_scale=0.8),
-    "ciddi": Prosody(pitch_semitones=0.0, rate=1.0, gain_db=1, brightness=0.5, pause_scale=1.2),
+    "sakin": Prosody(warmth_delta=1.0, speed_factor=0.92, pause_scale=1.2, gain_db=0.0),
+    "ciddi": Prosody(warmth_delta=1.8, presence_delta=0.8, speed_factor=0.90, pause_scale=1.2, gain_db=1.0),
+    "anlatıcı": Prosody(warmth_delta=2.2, presence_delta=0.8, speed_factor=0.88, pause_scale=1.3, gain_db=1.0),
+    "güçlü": Prosody(warmth_delta=2.0, presence_delta=1.0, speed_factor=0.94, pause_scale=1.1, gain_db=2.0),
+    "mutlu": Prosody(warmth_delta=-0.5, presence_delta=1.0, speed_factor=1.02, pause_scale=0.95, gain_db=1.2),
+    "haber": Prosody(warmth_delta=0.5, presence_delta=1.8, speed_factor=1.02, pause_scale=0.9, gain_db=1.5),
+    "heyecanlı": Prosody(warmth_delta=0.0, presence_delta=1.5, speed_factor=1.08, pause_scale=0.8, gain_db=2.0),
+    "kizgin": Prosody(warmth_delta=0.5, presence_delta=2.0, speed_factor=1.05, pause_scale=0.85, gain_db=2.5),
+    "uzgun": Prosody(warmth_delta=1.2, presence_delta=-1.0, speed_factor=0.88, pause_scale=1.3, gain_db=-1.5),
+    "romantik": Prosody(warmth_delta=1.8, presence_delta=-0.5, speed_factor=0.86, pause_scale=1.4, gain_db=-0.5),
+    "yumuşak": Prosody(warmth_delta=1.5, presence_delta=-0.5, speed_factor=0.90, pause_scale=1.2, gain_db=-0.5),
+    "fisilti": Prosody(warmth_delta=-1.0, presence_delta=-1.0, speed_factor=0.90, pause_scale=1.2, gain_db=-4.0),
+    "bagir": Prosody(warmth_delta=1.0, presence_delta=2.5, speed_factor=1.08, pause_scale=0.8, gain_db=3.5),
+    "korkmuş": Prosody(warmth_delta=-0.5, presence_delta=1.0, speed_factor=1.06, pause_scale=0.85, gain_db=0.5),
 }
 
 NEUTRAL = Prosody()

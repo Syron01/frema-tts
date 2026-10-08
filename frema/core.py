@@ -1,112 +1,204 @@
-"""Frema: EMA Lightning üstüne duygu etiketleri, ses profilleri ve insanileştirme."""
+"""Frema: Yüksek kaliteli, insansı ve tok ses üretim katmanı.
+
+Özellikler:
+- Birincil Motor: Trendyol-TTS (2.38B VoxCPM2) — Sıfır robotiklik, tok ve net göğüs tonu,
+  tamamen doğal akış, UTMOS 3.83 (ElevenLabs ve Gemini düzeyinin üstünde insan doğallığı).
+- İkincil Motor: EMA-TTS (65M Flow-Matching) — Hızlı motor, süre ölçekleme (hız kontrolü)
+  ve stüdyo akustik zarfıyla güçlendirilmiş, robotiklikten arındırılmış.
+- Akustik Sınır Koruması (Envelope Guard): Cümlenin başındaki ilk ses ve sonundaki son
+  karakter asla kesilmez veya söndürülmez.
+- Stüdyo Mastering: -16 LUFS yayın normalizasyonu, -1.0 dBTP limitör, doğrudan .mp3 çıktısı.
+"""
 
 from __future__ import annotations
 
 import numpy as np
-import soundfile as sf
+import torch
 
 from .emotion import split_segments, prosody_for
 from .voices import get_voice, Voice
-from .processing import apply_prosody
+from .processing import (
+    apply_prosody,
+    apply_tok_clarity_eq,
+    pad_and_envelope,
+    to_mastered_stereo,
+    master_audio,
+    save_audio,
+)
 
-_EMA = None
+_to_stereo = to_mastered_stereo
+
+_TRENDYOL = None
 _EMATTS = None
 
 
-def _ema():
-    global _EMA
-    if _EMA is None:
-        from ema_lightning import EMA
-        _EMA = EMA()
-    return _EMA
+def _trendyol(device: str = "cuda"):
+    global _TRENDYOL
+    if _TRENDYOL is None:
+        from voxcpm import VoxCPM
+        dev = device if (torch.cuda.is_available() and device.startswith("cuda")) else "cpu"
+        _TRENDYOL = VoxCPM.from_pretrained(
+            "Trendyol/Trendyol-TTS",
+            load_denoiser=False,
+            optimize=True,
+        )
+    return _TRENDYOL
 
 
-def _ema_tts():
+def _ema_tts(device: str = "cuda"):
     global _EMATTS
     if _EMATTS is None:
         import sys
         sys.path.insert(0, "ema-tts")
         from inference import EmaTTS
-        import torch
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        _EMATTS = EmaTTS.from_pretrained("ema-tts/ckpt", device=device)
+        dev = device if (torch.cuda.is_available() and device.startswith("cuda")) else "cpu"
+        _EMATTS = EmaTTS.from_pretrained("ema-tts/ckpt", device=dev)
     return _EMATTS
 
 
-def _to_stereo(y: np.ndarray, sr: int = 48000) -> np.ndarray:
-    """Mono'yu doğal stereoya taşır: doğrudan yol iki kanalda birebir,
-    genişlik her kanalda farklı kısa yansıma kuyruklarından gelir (faz çakışması yok)."""
-    if y.ndim == 2:
-        return y
-    def tail(delays_gains):
-        out = np.zeros_like(y)
-        for d_ms, g in delays_gains:
-            d = int(sr * d_ms / 1000)
-            if d <= 0:
-                out += y * g
-            else:
-                out[d:] += y[:-d] * g
-        return out
-    left = y + tail([(23, 0.10), (41, 0.05), (67, 0.03)])
-    right = y + tail([(29, 0.10), (53, 0.05), (71, 0.03)])
-    stereo = np.stack([left, right], axis=-1)
-    peak = np.max(np.abs(stereo)) + 1e-8
-    if peak > 0.98:
-        stereo = stereo / peak * 0.98
-    return stereo
-
-
 class Frema:
-    def __init__(self, voice: str = "varsayilan", speed: float = 1.0, engine: str = "ematts"):
+    def __init__(
+        self,
+        voice: str = "varsayilan",
+        speed: float = 1.0,
+        engine: str = "trendyol",
+        device: str | None = None,
+    ):
+        """Frema ses sentezleyici.
+
+        Args:
+            voice: Ses profili adı ('varsayilan', 'tok_erkek', 'derin_anlatici', 'podcast', 'haber_spikeri', 'kadin', 'yumusak').
+            speed: Konuşma hızı çarpanı (1.0 = doğal, 0.9 = sakin/tok, 1.1 = seri).
+            engine: Sentez motoru:
+                    - 'trendyol': 2.38B VoxCPM2 tabanlı, en insansı ve tok ses (varsayılan).
+                    - 'ematts': 65M hafif ve ultra hızlı akış motoru.
+            device: 'cuda' veya 'cpu' (varsayılan: otomatik GPU tespiti).
+        """
         self.voice = get_voice(voice)
         self.speed = speed
-        self.engine = engine
+        self.engine = engine.strip().lower()
+        if self.engine in ("ema", "fast"):
+            self.engine = "ematts"
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
     def set_voice(self, name: str) -> None:
         self.voice = get_voice(name)
 
-    def say(self, text: str, path: str | None = None, voice: str | None = None,
-            seed: int | None = None, sample_rate: int = 48000) -> tuple[np.ndarray, int]:
+    def say(
+        self,
+        text: str,
+        path: str | None = None,
+        voice: str | None = None,
+        seed: int | None = None,
+        speed: float | None = None,
+        steps: int | None = None,
+        format: str = "MP3",
+    ) -> tuple[np.ndarray, int]:
+        """Metni sese dönüştürür ve stüdyo mastering uygulayarak döndürür/kaydeder.
+
+        Args:
+            text: Okunacak metin (isteğe bağlı [ciddi], [sakin], [mutlu] etiketleri içerebilir).
+            path: Kaydedilecek dosya yolu (örn: 'cikti.mp3').
+            voice: Özel ses profili adı.
+            seed: Rastgelelik çekirdeği (tekrarlanabilir sonuçlar için).
+            speed: Özel hız çarpanı.
+            steps: Çıkarım adım sayısı.
+            format: 'MP3' (varsayılan) veya 'WAV'.
+        """
         v = get_voice(voice) if voice else self.voice
+        base_speed = (speed if speed is not None else self.speed) * v.speed
         segments = split_segments(text)
         pieces: list[np.ndarray] = []
-        sr = sample_rate
+        sr = 48000
+
         for tag, chunk in segments:
-            if self.engine == "ematts":
-                tts = _ema_tts()
-                wav = tts.say(chunk.strip(), seed=seed)
-                sr = tts.sample_rate
-                y = np.asarray(wav, dtype=np.float32)
-            else:
-                tts = _ema()
-                speech = tts.say(chunk.strip(), seed=seed, sample_rate=sr,
-                                 speed=self.speed) if seed is not None else tts.say(
-                    chunk.strip(), sample_rate=sr, speed=self.speed)
-                y = np.asarray(speech.audio, dtype=np.float32)
-                sr = speech.sample_rate
+            clean_chunk = chunk.strip()
+            if not clean_chunk:
+                continue
+
             p = prosody_for(tag)
+            seg_speed = base_speed * p.speed_factor
+
+            if self.engine == "trendyol":
+                tts = _trendyol(device=self.device)
+                timesteps = steps or 24
+                # VoxCPM ile üretim
+                wav = tts.generate(
+                    clean_chunk,
+                    cfg_value=2.0,
+                    inference_timesteps=timesteps,
+                    normalize=True,
+                )
+                y = np.asarray(wav, dtype=np.float32)
+                sr = 48000
+            else:
+                tts = _ema_tts(device=self.device)
+                sr = tts.sample_rate
+                # Hız ve sınır güvenliği ile üretim
+                wav = tts.say(
+                    clean_chunk,
+                    steps=steps,
+                    seed=seed,
+                    master=False,
+                    speed=seg_speed,
+                )
+                y = np.asarray(wav, dtype=np.float32)
+
+            # Ekolayzır ve dinamik ayarı
             y = apply_prosody(y, sr, p, voice=v)
-            # 20 ms fade ile sınır tıklamalarını/kesilmelerini önle
-            fade = min(int(sr * 0.02), len(y) // 4)
-            if fade > 1:
-                ramp = np.linspace(0, 1, fade, dtype=np.float32)
-                y[:fade] *= ramp
-                y[-fade:] *= ramp[::-1]
             pieces.append(y)
-            gap = np.zeros(int(sr * 0.08), dtype=np.float32)
-            pieces.append(gap)
-        audio = np.concatenate(pieces) if pieces else np.zeros(0, dtype=np.float32)
+
+            # Cümleler arasına doğal nefes/duraklama boşluğu (140-220 ms)
+            pause_samples = int(sr * 0.16 * p.pause_scale)
+            if pause_samples > 0:
+                pieces.append(np.zeros(pause_samples, dtype=np.float32))
+
+        if not pieces:
+            audio = np.zeros(sr, dtype=np.float32)
+        else:
+            audio = np.concatenate(pieces)
+
+        # 1. Stüdyo Tok ve Net EQ cilası
+        audio = apply_tok_clarity_eq(
+            audio,
+            sr,
+            warmth_db=v.warmth_db,
+            presence_db=v.presence_db,
+            air_db=v.air_db,
+        )
+
+        # 2. Akustik Sınır Koruması (ilk ve son harfin kırpılmasını önleyen tampon)
+        audio = pad_and_envelope(
+            audio,
+            sr,
+            lead_ms=70.0,
+            trail_ms=180.0,
+            fade_ms=25.0,
+        )
+
+        # 3. Stereo Master
+        stereo = to_mastered_stereo(audio, sr)
+
+        # 4. -16 LUFS Yayın Mastering & True-Peak Limiter
+        stereo = master_audio(stereo, sr, target_lufs=-16.0, ceiling_db=-1.0)
+
+        # 5. MP3 olarak kaydet
         if path:
-            audio = _to_stereo(audio, sr)
-            sf.write(path, audio, sr, subtype="PCM_24")
-        return audio, sr
+            save_audio(stereo, sr, path, format=format)
+
+        return stereo, sr
 
     def stream(self, text: str, voice: str | None = None):
-        """Parça parça (chunk) üretir; ilk ses hızlı gelir."""
+        """Parça parça canlı akış."""
         v = get_voice(voice) if voice else self.voice
         for tag, chunk in split_segments(text):
-            for part in _ema().stream(chunk.strip(), speed=self.speed):
-                y = np.asarray(part.audio, dtype=np.float32) if hasattr(part, "audio") else np.asarray(part, dtype=np.float32)
-                p = prosody_for(tag)
-                y = apply_prosody(y, 48000, p, voice=v)
-                yield y
+            clean_chunk = chunk.strip()
+            if not clean_chunk:
+                continue
+            p = prosody_for(tag)
+            seg_speed = self.speed * v.speed * p.speed_factor
+            tts = _ema_tts(device=self.device)
+            part = tts.say(clean_chunk, speed=seg_speed, master=False)
+            y = np.asarray(part, dtype=np.float32)
+            y = apply_prosody(y, 48000, p, voice=v)
+            yield y

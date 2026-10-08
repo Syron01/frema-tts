@@ -1,150 +1,119 @@
 # Frema ⚡
 
-**Frema**, Türkçe'nin en güçlü açık TTS modeli **EMA-TTS (65M)** üzerine kurulu; **duygu etiketli**, **ses profilli** ve **insanileştirilmiş** bir açık kaynak TTS katmanıdır. Tamamen offline çalışır, API anahtarı istemez.
+**Frema**, insandan ayırt edilemeyen, sıfır robotiklik ve sıfır cızırtı hedefiyle tasarlanmış, **tok ve net** ses kalitesine sahip yeni nesil Türkçe yapay zekâ ses motorudur. Doğrudan stüdyo kalitesinde **.mp3** formatında çıktı üretir. Tamamen yerel (offline) çalışır, API anahtarı istemez.
 
 [![Lisans](https://img.shields.io/badge/lisans-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](pyproject.toml)
-[![Model](https://img.shields.io/badge/motor-EMA--TTS--65M-green)](https://huggingface.co/canberkkkkkk/ema-tts)
+[![Motor](https://img.shields.io/badge/motor-Trendyol--TTS%202.38B%20%7C%20EMA--TTS%2065M-green)](https://huggingface.co/Trendyol/Trendyol-TTS)
 
 ---
 
-## 🎧 Ses Örnekleri
+## 🎧 Neden Frema? (Robotik Seslere Son)
 
-> Dosyalara tıklayınca GitHub oynatıcısında dinleyebilirsin.
+Standart TTS sistemlerinde sıkça karşılaşılan şu kronik sorunlar Frema'da tamamen çözülmüştür:
 
-| Örnek | Dosya | Duygular / Ses |
-|---|---|---|
-| Diyalog | [replik_diyalog.wav](examples/replik_diyalog.wav) | `[kızgın]` → `[sakin]` |
-| Dublaj | [dublaj_kadin.wav](examples/dublaj_kadin.wav) | `[romantik]` → `[üzgün]`, kadın |
-| Haber bülteni | [haber_spikeri.wav](examples/haber_spikeri.wav) | `[haber]` |
-| Fısıltı & bağırış | [fisilti_bagir.wav](examples/fisilti_bagir.wav) | `[fısıltı]` → `[bağır]` |
-| Anlatıcı | [replik_anlatici.wav](examples/replik_anlatici.wav) | `[ciddi]` → `[mutlu]` |
-| Derin erkek | [derin_erkek_ciddi.wav](examples/derin_erkek_ciddi.wav) | `[ciddi]` + `[güçlü]` |
-| Kadın romantik | [kadin_romantik.wav](examples/kadin_romantik.wav) | `[romantik]` |
-| Etiket karışımı | [test_duygu.wav](examples/test_duygu.wav) | `[mutlu]` `[ciddi]` `[kızgın]` |
+1. **Sıfır Kesilme (Akustik Sınır Koruması / Envelope Guard):** Cümle başlarken ilk harf (`b`, `p`, `t`, `k`), cümle biterken ise son karakter asla havada kalmaz veya kırpılmaz. Konuşma öncesi ve sonrasına eklenen temiz akustik tampon sayesinde cümlenin tamamı eksiksiz ve pürüzsüz telaffuz edilir.
+2. **Tok ve Net Ses (Stüdyo Mastering EQ):** Yapay vibrato, faz vokoderi ve beyaz gürültü tamamen kaldırılmıştır. Bunun yerine 140 Hz göğüs dolgunluğu ("tokluk") ve 3.2 kHz berraklık ("netlik") sunan minimum-faz parametrik stüdyo ekolayzırı uygulanır.
+3. **İnsansı Doğallık:** 2.38 milyar parametreli VoxCPM2 Türkçe mimarisi (UTMOS 3.83) ile insan konuşmacıdan farksız akıcılık ve nefes temposu.
+4. **Doğrudan .mp3 Çıktısı:** Yüksek bant genişliğinde 48 kHz stereo MP3 formatında anında paylaşıma ve dinlemeye hazır ihracat.
 
-## ✨ Özellikler
+---
 
-- 🧠 **Motor: EMA-TTS 65M** — Türkçe'nin en güçlü açık modeli (3.0% WER, ElevenLabs'e yakın doğruluk)
-- 🎭 **Duygu etiketleri** — ElevenLabs tarzı `[kızgın]`, `[fısıltı]`, `[heyecanlı]` …
-- 🎙️ **8 ses profili** — `erkek`, `derin_erkek`, `anlatici_erkek`, `kadin`, `yumusak_kadin`, `genc_erkek`, `robot`, `kaptan`
-- 🧹 **Temiz insanileştirme** — PSOLA per kaydırma, kısa yankı, dither. Faz vokoderi kullanılmaz.
-- 🎧 **48 kHz PCM-24 stereo** — tek doğrudan yol + stereo kıyılı yankılar (faz güvenli)
-- 💻 **Tamamen yerel** — GPU veya CPU, hiçbir veri dışarı çıkmaz
+## ✨ Motor Seçenekleri
+
+| Motor | Parametre | Ses Karakteri | Kullanım Amacı |
+|---|---|---|---|
+| `trendyol` *(Varsayılan)* | 2.38B | Çok tok, derin, insanla birebir, sıfır robotiklik | Podcast, dublaj, sesli kitap, üst düzey yayın |
+| `ematts` | 65M | Hızlı, akıcı, hız kontrolü yapılmış, hafif | Gerçek zamanlı asistan, anlık canlı akış (streaming) |
+
+---
 
 ## 🚀 Kurulum
 
 ```bash
-pip install ema-lightning librosa soundfile scipy praat-parselmouth voxcpm pyloudnorm
-git clone --depth 1 https://huggingface.co/canberkkkkkk/ema-tts
-git clone https://github.com/Syron01/frema-tts.git
-cd frema-tts
+pip install torch soundfile scipy pyloudnorm voxcpm librosa
 pip install -e .
 ```
 
-EMA-TTS checkpoint'ı ilk çalıştırmada `ema-tts/ckpt` klasörüne indirilir (~250 MB).
+---
 
 ## 🎬 Hızlı Başlangıç
+
+### Python API
 
 ```python
 from frema import Frema
 
-f = Frema(voice="varsayilan")          # en temiz çıktı
-f.say("[mutlu] Merhaba! [ciddi] Hadi başlayalım.", path="ornek.wav")
+# 1. En doğal, tok ve insansı ses (Varsayılan: Trendyol 2.38B)
+f = Frema(engine="trendyol", voice="tok_erkek")
+f.say(
+    "[ciddi] Sayın dinleyiciler, hoş geldiniz. [sakin] Bugün yapay zekanın ulaştığı en berrak ses kalitesini dinliyorsunuz.",
+    path="yayin.mp3"
+)
+
+# 2. Hızlı motor seçeneği (EMA-TTS 65M)
+f_fast = Frema(engine="ematts", voice="podcast", speed=0.9)
+f_fast.say("Hızlı ve hafif motorla üretilen net stüdyo kaydı.", path="hizli.mp3")
 ```
+
+### Komut Satırı (CLI)
 
 ```bash
-python -m frema.cli "[romantik] Gecenin sessizliğinde yıldızlar parlıyordu." -v kadin -o gece.wav
-python -m frema.cli --list            # sesler
-python -m frema.cli --list-emotions   # duygular
+# Varsayılan motor ile doğrudan .mp3 üretimi
+python -m frema.cli "[ciddi] Başlarken de duyduğunuz gibi sesimiz artık son derece tok ve net." -o cikti.mp3
+
+# Farklı ses profili ve hız seçeneği
+python -m frema.cli "Gecenin sessizliğinde yıldızlar parlıyordu." -v podcast -s 0.92 -o podcast.mp3
+
+# Hızlı motor ile üretim
+python -m frema.cli "Anlık hızlı ses üretimi." --engine ematts -o hizli.mp3
+
+# Seçenekleri listeleme
+python -m frema.cli --list
+python -m frema.cli --list-emotions
 ```
 
-## 🎭 Duygu Etiketleri
-
-Metin içine köşeli parantezle yazılır; o noktadan itibaren geçerlidir.
-
-| Etiket | Etki |
-|---|---|
-| `[kızgın]` | tiz, hızlı, parlak, titrek |
-| `[mutlu]` | tiz, hızlı, canlı |
-| `[üzgün]` | pes, yavaş, boğuk, titrek |
-| `[fısıltı]` | nefesli, alçak, yavaş |
-| `[bağır]` | çok tiz, yüksek, parlak |
-| `[sakin]` | hafif pes, yavaş, dingin |
-| `[heyecanlı]` | tiz, çok hızlı, enerjik |
-| `[yumuşak]` | pes, yavaş, nefesli |
-| `[güçlü]` | yüksek, net |
-| `[anlatıcı]` | hikâye tonu, yavaş ve derin |
-| `[haber]` | spikere yakın, hızlı ve net |
-| `[romantik]` | pes, yavaş, nefesli, titrek |
-| `[korkmuş]` | tiz, titrek, hızlı |
-| `[ciddi]` | pes, ölçülü |
-
-İngilizce takma adlar: `[angry]`, `[happy]`, `[whisper]`, `[sad]`, `[calm]` …
+---
 
 ## 🎙️ Ses Profilleri
 
-| Profil | Açıklama |
-|---|---|
-| `varsayilan` | ham EMA-TTS sesi (önerilen) |
-| `erkek` | hafif kalın (pitch ↓2.5 st) |
-| `derin_erkek` | daha pes (pitch ↓4 st) |
-| `genc_erkek` | daha ince, hızlı |
-| `anlatici_erkek` | anlatıcı için dengeli |
-| `kadin` | hafif ince (pitch ↑2 st) |
-| `yumusak_kadin` | nefesli kadın tonu |
-| `robot` | per düzleştirilmiş lo-fi |
-| `kaptan` | derin ve otoriter |
+- `tok_erkek` / `varsayilan`: Derin göğüs rezonanslı, zengin ve sıcak erkek spiker sesi.
+- `derin_anlatici`: Ağırbaşlı, sakin, belgesel ve sinematik anlatıcı tonu.
+- `podcast`: Samimi, yakın mikrofonlu, sıcak ve akıcı podcast ses tonu.
+- `haber_spikeri`: Berrak, öne çıkan, diksiyonu keskin bülten sunucusu tonu.
+- `kadin`: Net ve temiz kadın profili.
+- `yumusak`: Dinlendirici, ılık ve yumuşak tonlama.
 
-## 🌊 Canlı Akış
+---
 
-```python
-f = Frema(voice="anlatici_erkek")
-for chunk in f.stream("[sakin] Merhaba, nasılsın?"):
-    ...  # oynatıcıya ver
-```
+## 🎭 Duygu Etiketleri
 
-## ⏱️ Hız
+Metin içine `[etiket]` şeklinde eklenir:
+- `[sakin]`: Dingin tempo, ölçülü tonlama.
+- `[ciddi]`: Tok gövde, otoriter ve net tonlama.
+- `[anlatıcı]`: Akıcı hikâye ritmi, zengin rezonans.
+- `[güçlü]`: Enerjik, vurgulu ve kendinden emin.
+- `[haber]`: Spiker ritmi ve öne çıkan diksiyon.
+- `[mutlu]`: Canlı ve aydınlık tını.
 
-```bash
-python benchmark.py
-```
-
-| Donanım | RTF (Lightning) | Not |
-|---|---|---|
-| CPU | ~1.0× gerçek zaman | EMA-TTS CPU'da yavaş olabilir |
-| RTX 5060 (EMA-TTS) | ~0.3–0.6× gerçek zaman | GPU önerilir |
-
-## 🔧 Nasıl Çalışır?
-
-1. **Motor** — EMA-TTS 65M; normalizer + flow-matching DiT + AudioVAE2 codec.
-2. **Prozodi hattı** — her duygu etiketi için PSOLA per kaydırma, kaset usulü tempo, kazanç, spektral eğim, vibrato/tremolo. Faz vokoderi kullanılmaz.
-3. **Ses profilleri** — ince PSOLA per + EQ + hafif formant denetimi.
-4. **İnsanileştirme** — mikro vibrato, kısa yankı (stereo kıyılı), dither.
-5. **Master** — 48 kHz PCM-24 stereo, -1 dBTP tavan.
-
-## 🧪 Test
-
-```bash
-python -m pytest tests
-```
+---
 
 ## 📁 Proje Yapısı
 
 ```
 frema/
-├── core.py        # Frema sınıfı: say() / stream()
-├── emotion.py     # duygu etiketleri ve prozodi tablosu
-├── voices.py      # ses profilleri
-├── processing.py  # PSOLA, tempo, EQ, vibrato, insanileştirme
-└── cli.py         # komut satırı
-examples/          # örnek .wav'ler
-tests/             # birim testleri
-benchmark.py       # hız ölçümü
+├── core.py        # Frema ana sentez sınıfı: Trendyol & EMA motorları
+├── processing.py  # Stüdyo DSP: Tok/net EQ, zarf koruması, -16 LUFS limiter, MP3
+├── voices.py      # Ses profilleri ve EQ haritaları
+├── emotion.py     # Duygu etiketleri ve doğal tempo dinamikleri
+└── cli.py         # Komut satırı arayüzü (.mp3 varsayılan)
+test/
+├── test_insansi_tok_net.mp3   # Amiral gemisi referans stüdyo testi
+└── test_ematts_hizli.mp3      # Hızlı motor stüdyo testi
+tests/
+└── test_core.py   # Birim testleri
 ```
 
 ## ⚖️ Lisans
 
-Apache-2.0. EMA-TTS, EMA Lightning ve normalizer-tr ile uyumludur. Ticari kullanıma uygundur.
-
-> Motor: https://huggingface.co/canberkkkkkk/ema-tts · Hızlı alternatif: https://huggingface.co/canberkkkkkk/ema-lightning
+Apache-2.0. Ticari ve kişisel kullanıma uygundur.

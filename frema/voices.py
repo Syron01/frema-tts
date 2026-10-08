@@ -1,5 +1,4 @@
-"""Ses profilleri. EMA tek ses üretir; profiller formant/per/EQ ile
-erkek/kadın/karakter sesleri türetir."""
+"""Ses profilleri: Stüdyo akustik karakterleri ve EQ eğrileri."""
 
 from __future__ import annotations
 
@@ -9,30 +8,35 @@ from dataclasses import dataclass
 @dataclass
 class Voice:
     name: str
-    pitch_semitones: float = 0.0
-    formant: float = 1.0       # >1 daha kalın (erkek), <1 daha ince (kadın)
-    brightness: float = 0.0
+    warmth_db: float = 0.0       # >0 daha tok/sıcak göğüs rezonansı (dB)
+    presence_db: float = 0.0     # >0 daha net/belirgin diksiyon (dB)
+    air_db: float = 0.0          # >0 ipeksi stüdyo havası (dB)
+    speed: float = 1.0           # Hız çarpanı (<1 daha sakin ve tok, >1 daha seri)
     gain_db: float = 0.0
-    rate: float = 1.0
-    breathiness: float = 0.0
-    lowpass_hz: float | None = None
+    reference_wav: str | None = None
 
 
 VOICES: dict[str, Voice] = {
-    "varsayilan": Voice("varsayilan"),
-    "erkek": Voice("erkek", pitch_semitones=-1.5, formant=1.0, brightness=-0.3, gain_db=1.0),
-    "derin_erkek": Voice("derin_erkek", pitch_semitones=-2.5, formant=1.03, brightness=-1.0, gain_db=1.5),
-    "genc_erkek": Voice("genc_erkek", pitch_semitones=-0.5, formant=1.0, brightness=0.3, rate=1.05),
-    "anlatici_erkek": Voice("anlatici_erkek", pitch_semitones=-1.0, formant=1.0, brightness=0.0, gain_db=1.0, rate=0.97),
-    "kadin": Voice("kadin", pitch_semitones=1.5, formant=1.0, brightness=1.0, gain_db=-0.5),
-    "yumusak_kadin": Voice("yumusak_kadin", pitch_semitones=1.0, formant=1.0, brightness=0.0, breathiness=0.15),
-    "robot": Voice("robot", pitch_semitones=-1.0, formant=1.0, brightness=-2, gain_db=2),
-    "kaptan": Voice("kaptan", pitch_semitones=-2.0, formant=1.03, brightness=-0.5, gain_db=3, rate=0.97),
+    "varsayilan": Voice("varsayilan", warmth_db=1.2, presence_db=0.8, speed=0.95),
+    "tok_erkek": Voice("tok_erkek", warmth_db=2.5, presence_db=1.2, air_db=0.5, speed=0.92, gain_db=1.0),
+    "derin_anlatici": Voice("derin_anlatici", warmth_db=3.5, presence_db=1.5, air_db=0.5, speed=0.88, gain_db=1.5),
+    "podcast": Voice("podcast", warmth_db=2.0, presence_db=1.2, air_db=1.0, speed=0.93),
+    "haber_spikeri": Voice("haber_spikeri", warmth_db=0.5, presence_db=2.2, air_db=1.5, speed=1.02),
+    "kadin": Voice("kadin", warmth_db=-0.8, presence_db=1.5, air_db=2.0, speed=0.96),
+    "yumusak": Voice("yumusak", warmth_db=1.5, presence_db=-0.5, air_db=0.5, speed=0.90, gain_db=-0.5),
 }
 
 
 def get_voice(name: str) -> Voice:
     key = name.strip().lower()
+    aliases = {
+        "erkek": "tok_erkek",
+        "derin_erkek": "derin_anlatici",
+        "anlatici_erkek": "derin_anlatici",
+        "genc_erkek": "haber_spikeri",
+        "yumusak_kadin": "yumusak",
+    }
+    key = aliases.get(key, key)
     if key not in VOICES:
         raise KeyError(f"Bilinmeyen ses: {name}. Seçenekler: {', '.join(VOICES)}")
     return VOICES[key]
